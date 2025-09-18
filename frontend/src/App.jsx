@@ -1,4 +1,3 @@
-// src/App.jsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import { routes } from "./config/routes";

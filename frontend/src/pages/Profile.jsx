@@ -7,7 +7,6 @@ export default function Profile() {
           <h2 className="text-2xl font-semibold mb-6">Profile</h2>
 
           <div className="space-y-6">
-            {/* Profile Picture Section */}
             <div className="flex items-center space-x-6">
               <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center">
                 <span className="text-white text-2xl font-medium">U</span>

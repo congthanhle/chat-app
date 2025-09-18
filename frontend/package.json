@@ -12,6 +12,7 @@
   "dependencies": {
     "env": "^0.0.2",
     "firebase": "^12.2.1",
+    "primeicons": "^7.0.0",
     "primereact": "^10.9.7",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
