@@ -106,7 +106,7 @@ export default function ChatRoom() {
           </div>
 
           <div className="mt-4 space-y-4">
-            <div className="flex-1 overflow-y-auto border p-2 mb-4 rounded space-y-2 min-h-[calc(100vh-284px)] max-h-[calc(100vh-260px)]">
+            <div className="flex-1 overflow-y-auto border p-2 mb-4 rounded space-y-2 min-h-[calc(100vh-285px)] max-h-[calc(100vh-285px)] md:min-h-[calc(100vh-260px)] md:max-h-[calc(100vh-260px)]">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
