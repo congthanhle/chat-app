@@ -24,7 +24,7 @@ export default function RoomList() {
           <div
             key={room.id}
             className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 border border-gray-200 h-40 flex flex-col justify-between"
-            onClick={() => navigate(`/rooms/${room.id}`)}
+            onClick={() => navigate(`/rooms/${room.id}`, { state: { roomName: room.name } })}
           >
             <div className="flex items-start justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800 truncate flex-1 mr-2">

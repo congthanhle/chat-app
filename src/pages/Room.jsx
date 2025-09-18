@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { listenMessages, sendMessage } from "../services/firebaseService";
 import { formatDateTime } from "../utils/datetime";
 
 export default function ChatRoom() {
   const { roomId } = useParams();
+  const location = useLocation();
+  const roomName = location.state?.roomName || "Chat Room";
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [username, setUsername] = useState("");
@@ -87,7 +89,7 @@ export default function ChatRoom() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Room: {roomId}</h2>
+            <h2 className="text-xl font-semibold">Room: {roomName}</h2>
             {username && (
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-600">
