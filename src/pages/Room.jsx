@@ -85,9 +85,9 @@ export default function ChatRoom() {
   };
 
   return (
-    <div className="p-4">
+    <div className="md:p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white md:rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Room: {roomName}</h2>
             {username && (
@@ -106,7 +106,7 @@ export default function ChatRoom() {
           </div>
 
           <div className="mt-4 space-y-4">
-            <div className="flex-1 overflow-y-auto border p-2 mb-4 rounded space-y-2 min-h-[calc(100vh-260px)] max-h-[calc(100vh-260px)]">
+            <div className="flex-1 overflow-y-auto border p-2 mb-4 rounded space-y-2 min-h-[calc(100vh-284px)] max-h-[calc(100vh-260px)]">
               {messages.map((msg) => (
                 <div
                   key={msg.id}

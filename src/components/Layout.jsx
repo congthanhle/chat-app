@@ -17,10 +17,11 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen w-screen bg-gray-100">
-      <div className={`bg-white shadow-lg transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-16'
+    <div className="flex flex-col md:flex-row h-screen w-screen bg-gray-100">
+      {/* Desktop Sidebar */}
+      <div className={`hidden md:block bg-white shadow-lg transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-16'
         }`}>
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between py-8 md:p-4 border-b">
           {isSidebarOpen && (
             <h2 className="text-xl font-bold text-gray-800">Chat App</h2>
           )}
@@ -64,6 +65,27 @@ export default function Layout() {
         <main className="flex-1 overflow-auto bg-gray-50">
           <Outlet />
         </main>
+      </div>
+
+      <div className="md:hidden bg-white shadow-lg border-t">
+        <nav className="p-2">
+          <ul className="flex justify-around">
+            {sidebarRoutes.map((route, index) => (
+              <li key={index}>
+                <Link
+                  to={route.path}
+                  className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${isActive(route.path)
+                    ? 'text-cyan-600'
+                    : 'text-gray-700'
+                    }`}
+                >
+                  {route.icon}
+                  <span className="text-xs">{route.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </div>
   );
