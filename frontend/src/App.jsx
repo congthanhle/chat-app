@@ -1,43 +1,28 @@
-/* eslint-disable react/react-in-jsx-scope */
-import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+// src/App.jsx
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout";
+import { routes } from "./config/routes";
 
-const socket = io("http://localhost:4000");
-
-const App = () => {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-
-  useEffect(() => {
-    socket.on("message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-    return () => socket.off("message");
-  }, []);
-
-  const sendMessage = () => {
-    if (message.trim()) {
-      socket.emit("message", message);
-      setMessage("");
-    }
-  };
-
+export default function App() {
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Chat App Day 1 ✅</h1>
-      <div style={{ border: "1px solid #ccc", height: 200, overflowY: "auto" }}>
-        {messages.map((m, i) => (
-          <div key={i}>{m}</div>
-        ))}
-      </div>
-      <input
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type message..."
-      />
-      <button onClick={sendMessage}>Send</button>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          {routes.map((route, index) => {
+            const Component = route.component;
+            if (route.path === "/") {
+              return <Route key={index} index element={<Component />} />;
+            }
+            return (
+              <Route
+                key={index}
+                path={route.path}
+                element={<Component />}
+              />
+            );
+          })}
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
