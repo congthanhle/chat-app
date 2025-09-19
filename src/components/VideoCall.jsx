@@ -595,7 +595,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
               onClick={endCall}
               className="p-3 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
             >
-              <i className="pi pi-phone-slash text-xl"></i>
+              <i className="pi pi-phone text-xl"></i>
             </button>
           </div>
         )}
