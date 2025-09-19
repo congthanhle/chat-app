@@ -35,9 +35,28 @@ export default function ChatRoom() {
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      setHasMicrophone(true);
-      stream.getTracks().forEach(track => track.stop());
+      // Try with enhanced audio constraints first
+      let constraints = {
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true
+        },
+        video: false
+      };
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        setHasMicrophone(true);
+        stream.getTracks().forEach(track => track.stop());
+      } catch (error) {
+        console.warn('Failed with enhanced audio constraints, trying basic:', error);
+
+        // Fallback to very basic audio
+        constraints = { audio: true, video: false };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        setHasMicrophone(true);
+        stream.getTracks().forEach(track => track.stop());
+      }
     } catch (error) {
       console.error('Microphone not available:', error);
       setHasMicrophone(false);
@@ -109,10 +128,10 @@ export default function ChatRoom() {
   return (
     <div className="md:p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white md:rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white md:rounded-lg shadow-sm md:p-6 p-3">
+          <div className="flex items-center justify-between mb-4 flex-wrap md:flex-nowrap gap-2">
             <h2 className="text-xl font-semibold">Room: {roomName}</h2>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-between space-x-4 md:w-auto w-full">
               {username && (
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600">
@@ -137,22 +156,22 @@ export default function ChatRoom() {
                   title={hasMicrophone ? 'Start video call' : 'Microphone not available - click to check again'}
                 >
                   <i className={`text-sm ${hasMicrophone ? 'pi pi-video' : 'pi pi-ban'}`}></i>
-                  <span>{hasMicrophone ? 'Video Call' : 'No Mic'}</span>
+                  <span className="md:block hidden">{hasMicrophone ? 'Video Call' : 'No Mic'}</span>
                 </button>
               )}
             </div>
           </div>
 
           <div className="mt-4 space-y-4">
-            <div className="flex-1 overflow-y-auto border p-2 mb-4 rounded space-y-2 min-h-[calc(100vh-285px)] max-h-[calc(100vh-285px)] md:min-h-[calc(100vh-260px)] md:max-h-[calc(100vh-260px)]">
+            <div className="flex-1 overflow-y-auto border p-2 mb-4 rounded space-y-2 min-h-[calc(100vh-298px)] max-h-[calc(100vh-298px)] md:min-h-[calc(100vh-260px)] md:max-h-[calc(100vh-260px)]">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`p-2 rounded-xl ${msg.isSystem
-                      ? "bg-yellow-50 mx-auto text-center max-w-[60%]"
-                      : msg.sender === username
-                        ? "bg-cyan-100 ml-auto"
-                        : "bg-gray-100"
+                    ? "bg-yellow-50 mx-auto text-center max-w-[60%]"
+                    : msg.sender === username
+                      ? "bg-cyan-100 ml-auto"
+                      : "bg-gray-100"
                     } ${msg.isSystem ? "" : "max-w-[60%]"}`}
                 >
                   {!msg.isSystem && (

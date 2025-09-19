@@ -24,11 +24,54 @@ class WebRTCService {
     this.isInitiator = isInitiator;
 
     try {
-      // Get user media
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+      // Try to get user media with fallback constraints
+      let constraints = {
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: "user",
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      };
+
+      try {
+        // Try with ideal constraints first
+        this.localStream =
+          await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (error) {
+        console.warn(
+          "Failed with ideal constraints, trying basic constraints:",
+          error
+        );
+
+        // Fallback to basic constraints
+        constraints = {
+          video: true,
+          audio: true,
+        };
+
+        try {
+          this.localStream =
+            await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (fallbackError) {
+          console.warn(
+            "Failed with basic constraints, trying audio only:",
+            fallbackError
+          );
+
+          // Last fallback - audio only
+          constraints = {
+            video: false,
+            audio: true,
+          };
+
+          this.localStream =
+            await navigator.mediaDevices.getUserMedia(constraints);
+        }
+      }
 
       // Create peer connection
       this.peerConnection = new RTCPeerConnection(this.configuration);

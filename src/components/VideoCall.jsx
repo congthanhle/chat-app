@@ -50,9 +50,28 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        setHasMicrophone(true);
-        stream.getTracks().forEach(track => track.stop());
+        // Try with enhanced audio constraints first
+        let constraints = {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true
+          },
+          video: false
+        };
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          setHasMicrophone(true);
+          stream.getTracks().forEach(track => track.stop());
+        } catch (error) {
+          console.warn('Failed with enhanced audio constraints, trying basic:', error);
+
+          // Fallback to very basic audio
+          constraints = { audio: true, video: false };
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          setHasMicrophone(true);
+          stream.getTracks().forEach(track => track.stop());
+        }
       } catch (error) {
         console.error('Microphone not available:', error);
         setHasMicrophone(false);
@@ -127,7 +146,6 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
       if (isInitiator && session.participants.length === 2 && isInCall) {
         setTimeout(() => {
-          console.log('Creating offer as initiator...');
           webrtcService.createOffer();
         }, 1000);
       }
@@ -150,7 +168,6 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       });
 
       webrtcService.onConnectionStateChange((state) => {
-        console.log('Connection state:', state);
         if (state === 'connected') {
           setCallStatus('connected');
         } else if (state === 'disconnected' || state === 'failed') {
@@ -160,7 +177,25 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
     } catch (error) {
       console.error('Error starting call:', error);
+
+      // Provide specific error messages based on error type
+      if (error.name === 'NotFoundError') {
+        alert('Camera or microphone not found. Please check your devices and permissions.');
+      } else if (error.name === 'NotAllowedError') {
+        alert('Camera or microphone access denied. Please grant permissions and try again.');
+      } else if (error.name === 'NotReadableError') {
+        alert('Camera or microphone is being used by another application. Please close other apps and try again.');
+      } else {
+        alert(`Failed to start call: ${error.message}`);
+      }
+
       setCallStatus('error');
+      // Clean up session if it was created
+      try {
+        await endVideoCallSession(roomId);
+      } catch (cleanupError) {
+        console.error('Error cleaning up session:', cleanupError);
+      }
     }
   };
 
@@ -188,7 +223,6 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       });
 
       webrtcService.onConnectionStateChange((state) => {
-        console.log('Connection state:', state);
         if (state === 'connected') {
           setCallStatus('connected');
         } else if (state === 'disconnected' || state === 'failed') {
@@ -198,7 +232,20 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
     } catch (error) {
       console.error('Error joining call:', error);
+
+      // Provide specific error messages based on error type
+      if (error.name === 'NotFoundError') {
+        alert('Camera or microphone not found. Please check your devices and permissions.');
+      } else if (error.name === 'NotAllowedError') {
+        alert('Camera or microphone access denied. Please grant permissions and try again.');
+      } else if (error.name === 'NotReadableError') {
+        alert('Camera or microphone is being used by another application. Please close other apps and try again.');
+      } else {
+        alert(`Failed to join call: ${error.message}`);
+      }
+
       setCallStatus('error');
+      onClose();
     }
   };
 
@@ -321,7 +368,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
           </div>
         </div>
         <div className="flex-1 bg-gray-900 relative">
-          {callStatus === 'idle' && (
+          {callStatus === 'idle' && (!callSession || callSession.participants.includes(username)) && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center text-white">
                 <div className="mb-4">
@@ -484,6 +531,44 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
                 </div>
                 <h4 className="text-xl font-semibold mb-2">Call Ended</h4>
                 <p className="text-gray-300">The video call has ended</p>
+              </div>
+            </div>
+          )}
+
+          {callStatus === 'error' && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center text-white max-w-md mx-4">
+                <div className="mb-4">
+                  <i className="pi pi-exclamation-triangle text-6xl text-red-400"></i>
+                </div>
+                <h4 className="text-xl font-semibold mb-2">Call Error</h4>
+                <p className="text-gray-300 mb-4">Unable to access camera or microphone</p>
+                <div className="text-sm text-gray-400 mb-6">
+                  <p className="mb-2">Troubleshooting steps:</p>
+                  <ul className="text-left space-y-1">
+                    <li>• Grant camera/microphone permissions</li>
+                    <li>• Close other apps using your camera</li>
+                    <li>• Check if devices are properly connected</li>
+                    <li>• Try refreshing the page</li>
+                  </ul>
+                </div>
+                <div className="space-x-4">
+                  <button
+                    onClick={() => {
+                      setCallStatus('idle');
+                      checkMediaDevices();
+                    }}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Try Again
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           )}
