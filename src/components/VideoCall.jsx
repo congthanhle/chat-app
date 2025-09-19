@@ -43,18 +43,15 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
     try {
       setIsCheckingMedia(true);
 
-      // Check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setHasMicrophone(false);
         setIsCheckingMedia(false);
         return;
       }
 
-      // Try to get user media to check microphone availability
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         setHasMicrophone(true);
-        // Stop the test stream
         stream.getTracks().forEach(track => track.stop());
       } catch (error) {
         console.error('Microphone not available:', error);
@@ -82,13 +79,9 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
   const initializeVideoCall = async () => {
     try {
-      // Listen for session changes first
       sessionUnsubscribeRef.current = listenVideoCallSession(roomId, handleSessionChange);
-
-      // Listen for WebRTC signals
       signalUnsubscribeRef.current = listenVideoCallSignals(roomId, handleSignal);
 
-      // Check if there's already an active call
       const existingSession = await getVideoCallSession(roomId);
 
       if (existingSession) {
@@ -99,11 +92,9 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
         }
 
         if (!existingSession.participants.includes(username)) {
-          // Set initial status for joining
           setCallStatus('idle');
           setCallSession(existingSession);
         } else {
-          // Rejoin existing call
           setIsInitiator(existingSession.initiator === username);
           await rejoinCall();
         }
@@ -149,7 +140,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       setIsInitiator(true);
 
       await createVideoCallSession(roomId, username);
-      await sendMessage(roomId, 'System', `${username} started a video call`);
+      await sendMessage(roomId, 'System', `${username} started a video call`, true);
       const stream = await webrtcService.initializeCall(roomId, username, true);
       setLocalStream(stream);
       setIsInCall(true);
@@ -185,7 +176,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
         return;
       }
 
-      await sendMessage(roomId, 'System', `${username} joined the video call`);
+      await sendMessage(roomId, 'System', `${username} joined the video call`, true);
 
       const stream = await webrtcService.initializeCall(roomId, username, false);
       setLocalStream(stream);
@@ -264,7 +255,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   const endCall = async () => {
     try {
       setCallStatus('ended');
-      if (callSession) await sendMessage(roomId, 'System', `${username} left the video call`);
+      if (callSession) await sendMessage(roomId, 'System', `${username} left the video call`, true);
       webrtcService.endCall();
       await endVideoCallSession(roomId);
       cleanup();
@@ -317,7 +308,6 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-full max-w-4xl h-3/4 max-h-screen mx-4 flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold">Video Call</h3>
           <div className="flex items-center space-x-2">

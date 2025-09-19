@@ -131,12 +131,12 @@ export default function ChatRoom() {
                   onClick={() => hasMicrophone ? setShowVideoCall(true) : checkMicrophoneAvailability()}
                   disabled={!hasMicrophone}
                   className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${hasMicrophone
-                      ? 'bg-green-500 hover:bg-green-600 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    ? 'bg-green-500 hover:bg-green-600 text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   title={hasMicrophone ? 'Start video call' : 'Microphone not available - click to check again'}
                 >
-                  <i className={`text-sm ${hasMicrophone ? 'pi pi-video' : 'pi pi-microphone-slash'}`}></i>
+                  <i className={`text-sm ${hasMicrophone ? 'pi pi-video' : 'pi pi-ban'}`}></i>
                   <span>{hasMicrophone ? 'Video Call' : 'No Mic'}</span>
                 </button>
               )}
@@ -148,11 +148,17 @@ export default function ChatRoom() {
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`p-2 rounded-xl ${msg.sender === username ? "bg-cyan-100 ml-auto" : "bg-gray-100"
-                    } max-w-[60%]`}
+                  className={`p-2 rounded-xl ${msg.isSystem
+                      ? "bg-yellow-50 mx-auto text-center max-w-[60%]"
+                      : msg.sender === username
+                        ? "bg-cyan-100 ml-auto"
+                        : "bg-gray-100"
+                    } ${msg.isSystem ? "" : "max-w-[60%]"}`}
                 >
-                  <span className="block text-xs text-gray-600">{msg.sender}</span>
-                  <span>{msg.text}</span>
+                  {!msg.isSystem && (
+                    <span className="block text-xs text-gray-600">{msg.sender}</span>
+                  )}
+                  <span className={msg.isSystem ? "text-sm text-gray-700 italic" : ""}>{msg.text}</span>
                   <div className="text-xs text-gray-500 mt-1">
                     {formatDateTime(msg.createdAt)}
                   </div>

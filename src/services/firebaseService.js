@@ -25,10 +25,11 @@ export function listenMessages(roomId, callback) {
   });
 }
 
-export async function sendMessage(roomId, sender, text) {
+export async function sendMessage(roomId, sender, text, isSystem = false) {
   await addDoc(collection(db, "chatRooms", roomId, "messages"), {
     sender,
     text,
+    isSystem,
     createdAt: serverTimestamp(),
   });
 }
