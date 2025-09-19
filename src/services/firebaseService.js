@@ -96,9 +96,7 @@ export function listenVideoCallSession(roomId, callback) {
 
 export async function endVideoCallSession(roomId) {
   try {
-    // Delete video call session
     await deleteDoc(doc(db, "videoCallSessions", roomId));
-    // Clean up signals
     await deleteDoc(doc(db, "videoCallSignals", roomId));
   } catch (error) {
     console.error("Error ending video call session:", error);

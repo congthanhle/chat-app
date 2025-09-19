@@ -14,6 +14,7 @@ export default function ChatRoom() {
   const [showNameInput, setShowNameInput] = useState(false);
   const [tempName, setTempName] = useState("");
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [hasMicrophone, setHasMicrophone] = useState(true);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -21,10 +22,27 @@ export default function ChatRoom() {
     const savedUsername = localStorage.getItem('chatUsername');
     if (savedUsername) {
       setUsername(savedUsername);
+      checkMicrophoneAvailability();
     } else {
       setShowNameInput(true);
     }
   }, []);
+
+  const checkMicrophoneAvailability = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setHasMicrophone(false);
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      setHasMicrophone(true);
+      stream.getTracks().forEach(track => track.stop());
+    } catch (error) {
+      console.error('Microphone not available:', error);
+      setHasMicrophone(false);
+    }
+  };
 
   useEffect(() => {
     if (!roomId) return;
@@ -60,6 +78,9 @@ export default function ChatRoom() {
     localStorage.setItem('chatUsername', finalUsername);
     setShowNameInput(false);
     setTempName("");
+
+    // Check microphone availability when username is set
+    checkMicrophoneAvailability();
 
     setTimeout(() => {
       inputRef.current?.focus();
@@ -107,11 +128,16 @@ export default function ChatRoom() {
               )}
               {username && (
                 <button
-                  onClick={() => setShowVideoCall(true)}
-                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                  onClick={() => hasMicrophone ? setShowVideoCall(true) : checkMicrophoneAvailability()}
+                  disabled={!hasMicrophone}
+                  className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${hasMicrophone
+                      ? 'bg-green-500 hover:bg-green-600 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  title={hasMicrophone ? 'Start video call' : 'Microphone not available - click to check again'}
                 >
-                  <i className="pi pi-video text-sm"></i>
-                  <span>Video Call</span>
+                  <i className={`text-sm ${hasMicrophone ? 'pi pi-video' : 'pi pi-microphone-slash'}`}></i>
+                  <span>{hasMicrophone ? 'Video Call' : 'No Mic'}</span>
                 </button>
               )}
             </div>

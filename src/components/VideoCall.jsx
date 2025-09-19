@@ -20,6 +20,8 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [callSession, setCallSession] = useState(null);
   const [isInitiator, setIsInitiator] = useState(false);
+  const [hasMicrophone, setHasMicrophone] = useState(true);
+  const [isCheckingMedia, setIsCheckingMedia] = useState(true);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -28,6 +30,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen && roomId && username) {
+      checkMediaDevices();
       initializeVideoCall();
     }
 
@@ -35,6 +38,35 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       cleanup();
     };
   }, [isOpen, roomId, username]);
+
+  const checkMediaDevices = async () => {
+    try {
+      setIsCheckingMedia(true);
+
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setHasMicrophone(false);
+        setIsCheckingMedia(false);
+        return;
+      }
+
+      // Try to get user media to check microphone availability
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        setHasMicrophone(true);
+        // Stop the test stream
+        stream.getTracks().forEach(track => track.stop());
+      } catch (error) {
+        console.error('Microphone not available:', error);
+        setHasMicrophone(false);
+      }
+    } catch (error) {
+      console.error('Error checking media devices:', error);
+      setHasMicrophone(false);
+    } finally {
+      setIsCheckingMedia(false);
+    }
+  };
 
   useEffect(() => {
     if (localStream && localVideoRef.current) {
@@ -84,9 +116,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   };
 
   const handleSessionChange = async (session) => {
-    console.log('Session changed:', session);
     setCallSession(session);
-
     if (!session) {
       if (isInCall) {
         setCallStatus('ended');
@@ -104,7 +134,6 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
         setCallStatus('connecting');
       }
 
-      // If we're the initiator and someone just joined, create offer
       if (isInitiator && session.participants.length === 2 && isInCall) {
         setTimeout(() => {
           console.log('Creating offer as initiator...');
@@ -119,18 +148,11 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       setCallStatus('calling');
       setIsInitiator(true);
 
-      // Create call session
       await createVideoCallSession(roomId, username);
-
-      // Send notification message
       await sendMessage(roomId, 'System', `${username} started a video call`);
-
-      // Initialize WebRTC
       const stream = await webrtcService.initializeCall(roomId, username, true);
       setLocalStream(stream);
       setIsInCall(true);
-
-      // Setup WebRTC callbacks
       webrtcService.onRemoteStream((stream) => {
         setRemoteStream(stream);
         setCallStatus('connected');
@@ -144,8 +166,6 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
           endCall();
         }
       });
-
-      // Create offer when someone joins (handled in handleSessionChange)
 
     } catch (error) {
       console.error('Error starting call:', error);
@@ -157,7 +177,6 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
     try {
       setCallStatus('connecting');
 
-      // Join call session
       const joined = await joinVideoCallSession(roomId, username);
 
       if (!joined) {
@@ -166,15 +185,12 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
         return;
       }
 
-      // Send notification message
       await sendMessage(roomId, 'System', `${username} joined the video call`);
 
-      // Initialize WebRTC
       const stream = await webrtcService.initializeCall(roomId, username, false);
       setLocalStream(stream);
       setIsInCall(true);
 
-      // Setup WebRTC callbacks
       webrtcService.onRemoteStream((stream) => {
         setRemoteStream(stream);
         setCallStatus('connected');
@@ -189,9 +205,6 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
         }
       });
 
-      // Don't create offer here - wait for the initiator to create it
-      // The initiator should create the offer when they see someone joined
-
     } catch (error) {
       console.error('Error joining call:', error);
       setCallStatus('error');
@@ -199,7 +212,6 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   };
 
   const rejoinCall = async () => {
-    // Similar to joinCall but without joining session again
     try {
       setCallStatus('connecting');
 
@@ -252,16 +264,9 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   const endCall = async () => {
     try {
       setCallStatus('ended');
-
-      // Send notification message
-      await sendMessage(roomId, 'System', `${username} left the video call`);
-
-      // End WebRTC call
+      if (callSession) await sendMessage(roomId, 'System', `${username} left the video call`);
       webrtcService.endCall();
-
-      // End Firebase session
       await endVideoCallSession(roomId);
-
       cleanup();
 
       setTimeout(() => {
@@ -276,11 +281,8 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   };
 
   const handleClose = () => {
-    if (isInCall) {
-      if (window.confirm('You are in a call. Are you sure you want to leave?')) {
-        endCall();
-      }
-    }
+    endCall();
+    onClose();
   }
 
   const toggleVideo = () => {
@@ -339,13 +341,37 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
                 <p className="text-gray-300 mb-4">
                   Only 2 people can join a video call at a time
                 </p>
-                <button
-                  onClick={startCall}
-                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors"
-                >
-                  <i className="pi pi-phone mr-2"></i>
-                  Start Call
-                </button>
+                {isCheckingMedia ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin mr-2">
+                      <i className="pi pi-spinner text-2xl"></i>
+                    </div>
+                    <span>Checking microphone...</span>
+                  </div>
+                ) : !hasMicrophone ? (
+                  <div className="text-center">
+                    <div className="mb-2 text-red-400">
+                      <i className="pi pi-microphone-slash text-2xl"></i>
+                    </div>
+                    <p className="text-red-400 mb-4">Microphone not available</p>
+                    <p className="text-sm text-gray-400 mb-4">Please check your microphone permissions and try again</p>
+                    <button
+                      onClick={checkMediaDevices}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                    >
+                      <i className="pi pi-refresh mr-2"></i>
+                      Check Again
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={startCall}
+                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors"
+                  >
+                    <i className="pi pi-phone mr-2"></i>
+                    Start Call
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -377,22 +403,54 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
                 <p className="text-gray-300 mb-4">
                   {callSession.initiator} is calling
                 </p>
-                <div className="space-x-4">
-                  <button
-                    onClick={joinCall}
-                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors"
-                  >
-                    <i className="pi pi-phone mr-2"></i>
-                    Join Call
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition-colors"
-                  >
-                    <i className="pi pi-phone-slash mr-2"></i>
-                    Decline
-                  </button>
-                </div>
+                {isCheckingMedia ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin mr-2">
+                      <i className="pi pi-spinner text-2xl"></i>
+                    </div>
+                    <span>Checking microphone...</span>
+                  </div>
+                ) : !hasMicrophone ? (
+                  <div className="text-center">
+                    <div className="mb-2 text-red-400">
+                      <i className="pi pi-microphone-slash text-2xl"></i>
+                    </div>
+                    <p className="text-red-400 mb-4">Cannot join - microphone not available</p>
+                    <div className="space-x-2">
+                      <button
+                        onClick={checkMediaDevices}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                      >
+                        <i className="pi pi-refresh mr-2"></i>
+                        Check Again
+                      </button>
+                      <button
+                        onClick={onClose}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                      >
+                        <i className="pi pi-phone-slash mr-2"></i>
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-x-4">
+                    <button
+                      onClick={joinCall}
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      <i className="pi pi-phone mr-2"></i>
+                      Join Call
+                    </button>
+                    <button
+                      onClick={onClose}
+                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      <i className="pi pi-phone-slash mr-2"></i>
+                      Decline
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
