@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { listenMessages, sendMessage } from "../services/firebaseService";
 import { formatDateTime } from "../utils/datetime";
-import VideoCall from "../components/VideoCall";
 
 export default function ChatRoom() {
   const { roomId } = useParams();
@@ -13,7 +12,6 @@ export default function ChatRoom() {
   const [username, setUsername] = useState("");
   const [showNameInput, setShowNameInput] = useState(false);
   const [tempName, setTempName] = useState("");
-  const [showVideoCall, setShowVideoCall] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -105,59 +103,19 @@ export default function ChatRoom() {
                   </button>
                 </div>
               )}
-              {username && (
-                <button
-                  onClick={() => setShowVideoCall(!showVideoCall)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${showVideoCall
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : 'bg-green-500 text-white hover:bg-green-600'
-                    }`}
-                >
-                  <i className={`pi ${showVideoCall ? 'pi-video-slash' : 'pi-video'}`}></i>
-                  <span className="hidden sm:inline">
-                    {showVideoCall ? 'End Call' : 'Video Call'}
-                  </span>
-                </button>
-              )}
             </div>
           </div>
 
           <div className="mt-4 space-y-4">
-            {showVideoCall && (
-              <div className="bg-gray-50 rounded-lg p-4 border">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-medium text-gray-800">Video Call</h3>
-                  <button
-                    onClick={() => setShowVideoCall(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <i className="pi pi-times"></i>
-                  </button>
-                </div>
-                <VideoCall roomId={roomId} username={username} />
-              </div>
-            )}
-            <div className={`flex-1 overflow-y-auto border p-2 mb-4 rounded space-y-2 ${showVideoCall
-              ? 'min-h-[calc(100vh-485px)] max-h-[calc(100vh-485px)] md:min-h-[calc(100vh-460px)] md:max-h-[calc(100vh-460px)]'
-              : 'min-h-[calc(100vh-285px)] max-h-[calc(100vh-285px)] md:min-h-[calc(100vh-260px)] md:max-h-[calc(100vh-260px)]'
-              }`}>
+            <div className="flex-1 overflow-y-auto border p-2 mb-4 rounded space-y-2 min-h-[calc(100vh-285px)] max-h-[calc(100vh-285px)] md:min-h-[calc(100vh-260px)] md:max-h-[calc(100vh-260px)]">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`p-2 rounded-xl ${msg.isSystemMessage
-                      ? "bg-blue-50 border border-blue-200 mx-auto text-center max-w-[80%]"
-                      : msg.sender === username
-                        ? "bg-cyan-100 ml-auto max-w-[60%]"
-                        : "bg-gray-100 max-w-[60%]"
-                    }`}
+                  className={`p-2 rounded-xl ${msg.sender === username ? "bg-cyan-100 ml-auto" : "bg-gray-100"
+                    } max-w-[60%]`}
                 >
-                  {!msg.isSystemMessage && (
-                    <span className="block text-xs text-gray-600">{msg.sender}</span>
-                  )}
-                  <span className={`${msg.isSystemMessage ? 'text-blue-700 text-sm italic flex items-center justify-center' : ''}`}>
-                    {msg.isSystemMessage && <i className="pi pi-video mr-2"></i>}
-                    {msg.text}
-                  </span>
+                  <span className="block text-xs text-gray-600">{msg.sender}</span>
+                  <span>{msg.text}</span>
                   <div className="text-xs text-gray-500 mt-1">
                     {formatDateTime(msg.createdAt)}
                   </div>
