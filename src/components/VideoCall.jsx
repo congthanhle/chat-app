@@ -581,14 +581,14 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
               onClick={toggleVideo}
               className={`p-3 rounded-full ${isVideoEnabled ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-600'} hover:opacity-80 transition-opacity`}
             >
-              <i className={`pi ${isVideoEnabled ? 'pi-video' : 'pi-video-slash'} text-xl`}></i>
+              <i className={`pi pi-video text-xl`}></i>
             </button>
 
             <button
               onClick={toggleAudio}
               className={`p-3 rounded-full ${isAudioEnabled ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-600'} hover:opacity-80 transition-opacity`}
             >
-              <i className={`pi ${isAudioEnabled ? 'pi-volume-up' : 'pi-volume-off'} text-xl`}></i>
+              <i className={`pi pi-volume-up text-xl`}></i>
             </button>
 
             <button
