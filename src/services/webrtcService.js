@@ -78,12 +78,18 @@ class WebRTCService {
 
       // Add local stream to peer connection
       this.localStream.getTracks().forEach((track) => {
+        console.log("Adding local track to peer connection:", track.kind);
         this.peerConnection.addTrack(track, this.localStream);
       });
 
       // Handle remote stream
       this.peerConnection.ontrack = (event) => {
+        console.log("Received remote track:", event.track.kind);
         this.remoteStream = event.streams[0];
+        console.log(
+          "Remote stream received with tracks:",
+          this.remoteStream.getTracks().length
+        );
         if (this.onRemoteStreamCallback) {
           this.onRemoteStreamCallback(this.remoteStream);
         }
@@ -116,16 +122,25 @@ class WebRTCService {
   }
 
   async createOffer() {
-    if (!this.peerConnection) return;
+    if (!this.peerConnection) {
+      console.error("Cannot create offer: peer connection not established");
+      return;
+    }
 
     try {
-      const offer = await this.peerConnection.createOffer();
+      console.log("Creating offer...");
+      const offer = await this.peerConnection.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      });
       await this.peerConnection.setLocalDescription(offer);
+      console.log("Offer created and set as local description");
 
       this.sendSignalingMessage({
         type: "offer",
         offer: offer,
       });
+      console.log("Offer sent via signaling");
     } catch (error) {
       console.error("Error creating offer:", error);
       throw error;
@@ -133,17 +148,26 @@ class WebRTCService {
   }
 
   async createAnswer(offer) {
-    if (!this.peerConnection) return;
+    if (!this.peerConnection) {
+      console.error("Cannot create answer: peer connection not established");
+      return;
+    }
 
     try {
+      console.log("Received offer, creating answer...");
       await this.peerConnection.setRemoteDescription(offer);
-      const answer = await this.peerConnection.createAnswer();
+      const answer = await this.peerConnection.createAnswer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      });
       await this.peerConnection.setLocalDescription(answer);
+      console.log("Answer created and set as local description");
 
       this.sendSignalingMessage({
         type: "answer",
         answer: answer,
       });
+      console.log("Answer sent via signaling");
     } catch (error) {
       console.error("Error creating answer:", error);
       throw error;
@@ -151,10 +175,15 @@ class WebRTCService {
   }
 
   async handleAnswer(answer) {
-    if (!this.peerConnection) return;
+    if (!this.peerConnection) {
+      console.error("Cannot handle answer: peer connection not established");
+      return;
+    }
 
     try {
+      console.log("Received answer, setting as remote description...");
       await this.peerConnection.setRemoteDescription(answer);
+      console.log("Answer set as remote description successfully");
     } catch (error) {
       console.error("Error handling answer:", error);
       throw error;
@@ -162,12 +191,20 @@ class WebRTCService {
   }
 
   async handleIceCandidate(candidate) {
-    if (!this.peerConnection) return;
+    if (!this.peerConnection) {
+      console.error(
+        "Cannot handle ICE candidate: peer connection not established"
+      );
+      return;
+    }
 
     try {
+      console.log("Adding ICE candidate...");
       await this.peerConnection.addIceCandidate(candidate);
+      console.log("ICE candidate added successfully");
     } catch (error) {
       console.error("Error handling ICE candidate:", error);
+      // Don't throw here as ICE candidates can fail normally
     }
   }
 

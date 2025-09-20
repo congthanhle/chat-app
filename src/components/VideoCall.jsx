@@ -92,7 +92,11 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
   useEffect(() => {
     if (remoteStream && remoteVideoRef.current) {
+      console.log('Setting remote stream to video element');
       remoteVideoRef.current.srcObject = remoteStream;
+      // Ensure the video is not muted and volume is set
+      remoteVideoRef.current.muted = false;
+      remoteVideoRef.current.volume = 1.0;
     }
   }, [remoteStream]);
 
@@ -144,10 +148,13 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
         setCallStatus('connecting');
       }
 
-      if (isInitiator && session.participants.length === 2 && isInCall) {
+      // Only create offer when both participants are connected and we are the initiator
+      if (isInitiator && session.participants.length === 2 && isInCall && localStream) {
+        // Add a delay to ensure both peers are ready
         setTimeout(() => {
+          console.log('Creating offer as initiator');
           webrtcService.createOffer();
-        }, 1000);
+        }, 2000);
       }
     }
   };
@@ -279,18 +286,24 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   const handleSignal = async (signalData) => {
     if (!signalData || signalData.from === username) return;
 
+    console.log('Received signal:', signalData.type, 'from:', signalData.from);
+
     try {
       switch (signalData.type) {
         case 'offer':
+          console.log('Processing offer...');
           await webrtcService.createAnswer(signalData.offer);
           break;
         case 'answer':
+          console.log('Processing answer...');
           await webrtcService.handleAnswer(signalData.answer);
           break;
         case 'ice-candidate':
+          console.log('Processing ICE candidate...');
           await webrtcService.handleIceCandidate(signalData.candidate);
           break;
         case 'end-call':
+          console.log('Received end call signal');
           endCall();
           break;
       }

@@ -11,6 +11,7 @@ import {
   deleteDoc,
   getDoc,
   updateDoc,
+  getDocs,
 } from "firebase/firestore";
 
 export function listenMessages(roomId, callback) {
@@ -36,19 +37,25 @@ export async function sendMessage(roomId, sender, text, isSystem = false) {
 
 // Video call related functions
 export async function sendVideoCallSignal(roomId, signalData) {
-  await setDoc(doc(db, "videoCallSignals", roomId), {
+  // Use addDoc to create separate documents for each signal
+  await addDoc(collection(db, "videoCallSignals", roomId, "signals"), {
     ...signalData,
     timestamp: serverTimestamp(),
   });
 }
 
 export function listenVideoCallSignals(roomId, callback) {
-  const signalRef = doc(db, "videoCallSignals", roomId);
+  const q = query(
+    collection(db, "videoCallSignals", roomId, "signals"),
+    orderBy("timestamp", "asc")
+  );
 
-  return onSnapshot(signalRef, (snapshot) => {
-    if (snapshot.exists()) {
-      callback(snapshot.data());
-    }
+  return onSnapshot(q, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      if (change.type === "added") {
+        callback(change.doc.data());
+      }
+    });
   });
 }
 
@@ -98,6 +105,14 @@ export function listenVideoCallSession(roomId, callback) {
 export async function endVideoCallSession(roomId) {
   try {
     await deleteDoc(doc(db, "videoCallSessions", roomId));
+    // Delete the entire signals collection
+    const signalsRef = collection(db, "videoCallSignals", roomId, "signals");
+    const signalsSnapshot = await getDocs(signalsRef);
+    const deletePromises = signalsSnapshot.docs.map((doc) =>
+      deleteDoc(doc.ref)
+    );
+    await Promise.all(deletePromises);
+    // Also delete the main signals document
     await deleteDoc(doc(db, "videoCallSignals", roomId));
   } catch (error) {
     console.error("Error ending video call session:", error);
