@@ -45,6 +45,9 @@ export async function sendVideoCallSignal(roomId, signalData) {
 }
 
 export function listenVideoCallSignals(roomId, callback) {
+  // Only listen for signals from the last 30 seconds to avoid processing old signals
+  const thirtySecondsAgo = new Date(Date.now() - 30000);
+
   const q = query(
     collection(db, "videoCallSignals", roomId, "signals"),
     orderBy("timestamp", "asc")
@@ -53,7 +56,20 @@ export function listenVideoCallSignals(roomId, callback) {
   return onSnapshot(q, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
       if (change.type === "added") {
-        callback(change.doc.data());
+        const signalData = change.doc.data();
+        const signalTime = signalData.timestamp?.toDate();
+
+        // Only process signals from the last 30 seconds
+        if (!signalTime || signalTime > thirtySecondsAgo) {
+          callback(signalData);
+        } else {
+          console.log(
+            "Ignoring old signal:",
+            signalData.type,
+            "from:",
+            signalTime
+          );
+        }
       }
     });
   });
@@ -104,16 +120,26 @@ export function listenVideoCallSession(roomId, callback) {
 
 export async function endVideoCallSession(roomId) {
   try {
+    // Delete the session first
     await deleteDoc(doc(db, "videoCallSessions", roomId));
-    // Delete the entire signals collection
+
+    // Delete all signals in the collection
     const signalsRef = collection(db, "videoCallSignals", roomId, "signals");
     const signalsSnapshot = await getDocs(signalsRef);
     const deletePromises = signalsSnapshot.docs.map((doc) =>
       deleteDoc(doc.ref)
     );
     await Promise.all(deletePromises);
-    // Also delete the main signals document
-    await deleteDoc(doc(db, "videoCallSignals", roomId));
+
+    // Delete the main signals document container
+    try {
+      await deleteDoc(doc(db, "videoCallSignals", roomId));
+    } catch {
+      // This might not exist, which is fine
+      console.log("No main signals document to delete");
+    }
+
+    console.log("Video call session and signals cleaned up successfully");
   } catch (error) {
     console.error("Error ending video call session:", error);
   }

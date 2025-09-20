@@ -28,6 +28,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   const remoteVideoRef = useRef(null);
   const signalUnsubscribeRef = useRef(null);
   const sessionUnsubscribeRef = useRef(null);
+  const processedSignalsRef = useRef(new Set());
 
   useEffect(() => {
     if (isOpen && roomId && username) {
@@ -310,6 +311,18 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   const handleSignal = async (signalData) => {
     if (!signalData || signalData.from === username) return;
 
+    // Create a unique signal ID for deduplication
+    const signalId = `${signalData.from}_${signalData.type}_${signalData.timestamp}`;
+
+    // Check if we've already processed this signal
+    if (processedSignalsRef.current.has(signalId)) {
+      console.log('Skipping duplicate signal:', signalData.type, 'from:', signalData.from);
+      return;
+    }
+
+    // Mark this signal as processed
+    processedSignalsRef.current.add(signalId);
+
     console.log('Received signal:', signalData.type, 'from:', signalData.from);
 
     try {
@@ -381,6 +394,9 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       clearTimeout(connectionTimeout);
       setConnectionTimeout(null);
     }
+
+    // Clear processed signals
+    processedSignalsRef.current.clear();
 
     if (signalUnsubscribeRef.current) {
       signalUnsubscribeRef.current();
