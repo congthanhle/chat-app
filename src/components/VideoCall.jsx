@@ -22,6 +22,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   const [isInitiator, setIsInitiator] = useState(false);
   const [hasMicrophone, setHasMicrophone] = useState(true);
   const [isCheckingMedia, setIsCheckingMedia] = useState(true);
+  const [connectionTimeout, setConnectionTimeout] = useState(null);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -150,11 +151,11 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
       // Only create offer when both participants are connected and we are the initiator
       if (isInitiator && session.participants.length === 2 && isInCall && localStream) {
-        // Add a delay to ensure both peers are ready
+        // Add a longer delay to ensure both peers are ready and listening for signals
         setTimeout(() => {
           console.log('Creating offer as initiator');
           webrtcService.createOffer();
-        }, 2000);
+        }, 3000);
       }
     }
   };
@@ -170,13 +171,28 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       setLocalStream(stream);
       setIsInCall(true);
       webrtcService.onRemoteStream((stream) => {
+        console.log('Remote stream received');
         setRemoteStream(stream);
-        setCallStatus('connected');
+        // Don't set connected here, wait for actual WebRTC connection state
       });
 
       webrtcService.onConnectionStateChange((state) => {
+        console.log('WebRTC connection state changed to:', state);
         if (state === 'connected') {
           setCallStatus('connected');
+          // Clear any connection timeout when connected
+          if (connectionTimeout) {
+            clearTimeout(connectionTimeout);
+            setConnectionTimeout(null);
+          }
+        } else if (state === 'connecting') {
+          setCallStatus('connecting');
+          // Set timeout for connecting state (30 seconds)
+          const timeout = setTimeout(() => {
+            console.log('Connection timeout - forcing retry');
+            setCallStatus('error');
+          }, 30000);
+          setConnectionTimeout(timeout);
         } else if (state === 'disconnected' || state === 'failed') {
           endCall();
         }
@@ -225,13 +241,17 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       setIsInCall(true);
 
       webrtcService.onRemoteStream((stream) => {
+        console.log('Remote stream received');
         setRemoteStream(stream);
-        setCallStatus('connected');
+        // Don't set connected here, wait for actual WebRTC connection state
       });
 
       webrtcService.onConnectionStateChange((state) => {
+        console.log('WebRTC connection state changed to:', state);
         if (state === 'connected') {
           setCallStatus('connected');
+        } else if (state === 'connecting') {
+          setCallStatus('connecting');
         } else if (state === 'disconnected' || state === 'failed') {
           endCall();
         }
@@ -265,13 +285,17 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       setIsInCall(true);
 
       webrtcService.onRemoteStream((stream) => {
+        console.log('Remote stream received');
         setRemoteStream(stream);
-        setCallStatus('connected');
+        // Don't set connected here, wait for actual WebRTC connection state
       });
 
       webrtcService.onConnectionStateChange((state) => {
+        console.log('WebRTC connection state changed to:', state);
         if (state === 'connected') {
           setCallStatus('connected');
+        } else if (state === 'connecting') {
+          setCallStatus('connecting');
         } else if (state === 'disconnected' || state === 'failed') {
           endCall();
         }
@@ -351,6 +375,12 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
     setRemoteStream(null);
     setIsInCall(false);
     setCallStatus('idle');
+
+    // Clear connection timeout
+    if (connectionTimeout) {
+      clearTimeout(connectionTimeout);
+      setConnectionTimeout(null);
+    }
 
     if (signalUnsubscribeRef.current) {
       signalUnsubscribeRef.current();

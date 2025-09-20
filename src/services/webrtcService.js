@@ -97,6 +97,10 @@ class WebRTCService {
 
       // Handle connection state changes
       this.peerConnection.onconnectionstatechange = () => {
+        console.log(
+          "Peer connection state:",
+          this.peerConnection.connectionState
+        );
         if (this.onConnectionStateChangeCallback) {
           this.onConnectionStateChangeCallback(
             this.peerConnection.connectionState
@@ -104,13 +108,44 @@ class WebRTCService {
         }
       };
 
+      // Handle ICE connection state changes for additional debugging
+      this.peerConnection.oniceconnectionstatechange = () => {
+        console.log(
+          "ICE connection state:",
+          this.peerConnection.iceConnectionState
+        );
+        // Use ICE connection state as fallback if peer connection state is not supported
+        if (this.onConnectionStateChangeCallback) {
+          const iceState = this.peerConnection.iceConnectionState;
+          if (iceState === "connected" || iceState === "completed") {
+            this.onConnectionStateChangeCallback("connected");
+          } else if (iceState === "connecting" || iceState === "checking") {
+            this.onConnectionStateChangeCallback("connecting");
+          } else if (
+            iceState === "disconnected" ||
+            iceState === "failed" ||
+            iceState === "closed"
+          ) {
+            this.onConnectionStateChangeCallback("failed");
+          }
+        }
+      };
+
+      // Handle signaling state changes
+      this.peerConnection.onsignalingstatechange = () => {
+        console.log("Signaling state:", this.peerConnection.signalingState);
+      };
+
       // Handle ICE candidates
       this.peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
+          console.log("Sending ICE candidate:", event.candidate.type);
           this.sendSignalingMessage({
             type: "ice-candidate",
             candidate: event.candidate,
           });
+        } else {
+          console.log("ICE gathering completed");
         }
       };
 
@@ -210,12 +245,15 @@ class WebRTCService {
 
   sendSignalingMessage(message) {
     // This will be implemented with Firebase
+    console.log("Sending signaling message:", message.type);
     if (window.sendVideoCallSignal) {
       window.sendVideoCallSignal(this.roomId, {
         ...message,
         from: this.username,
         timestamp: Date.now(),
       });
+    } else {
+      console.error("sendVideoCallSignal not available on window object");
     }
   }
 
