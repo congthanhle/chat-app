@@ -132,6 +132,7 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
   };
 
   const handleSessionChange = async (session) => {
+    console.log('Session changed:', session);
     setCallSession(session);
     if (!session) {
       if (isInCall) {
@@ -140,17 +141,22 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
       return;
     }
 
+    console.log('Session participants:', session.participants, 'Username:', username, 'Status:', session.status);
+
     if (!session.participants.includes(username) && session.participants.length < 2) {
+      console.log('User not in session or session not full');
       setCallStatus('idle');
       return;
     }
 
     if (session.status === 'active' && session.participants.includes(username)) {
+      console.log('Session is active and user is participant. isInCall:', isInCall, 'callStatus:', callStatus);
       if (!isInCall && callStatus !== 'connected') {
         setCallStatus('connecting');
       }
 
       // Only create offer when both participants are connected and we are the initiator
+      console.log('Checking offer conditions - isInitiator:', isInitiator, 'participants:', session.participants.length, 'isInCall:', isInCall, 'hasLocalStream:', !!localStream);
       if (isInitiator && session.participants.length === 2 && isInCall && localStream) {
         // Add a longer delay to ensure both peers are ready and listening for signals
         setTimeout(() => {
@@ -163,14 +169,19 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
   const startCall = async () => {
     try {
+      console.log('Starting call as initiator');
       setCallStatus('calling');
       setIsInitiator(true);
 
+      console.log('Creating video call session...');
       await createVideoCallSession(roomId, username);
       await sendMessage(roomId, 'System', `${username} started a video call`, true);
+
+      console.log('Initializing WebRTC call...');
       const stream = await webrtcService.initializeCall(roomId, username, true);
       setLocalStream(stream);
       setIsInCall(true);
+      console.log('Call initialized, isInCall set to true');
       webrtcService.onRemoteStream((stream) => {
         console.log('Remote stream received');
         setRemoteStream(stream);
@@ -225,8 +236,10 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
   const joinCall = async () => {
     try {
+      console.log('Joining call as participant');
       setCallStatus('connecting');
 
+      console.log('Joining video call session...');
       const joined = await joinVideoCallSession(roomId, username);
 
       if (!joined) {
@@ -237,9 +250,11 @@ function VideoCall({ roomId, username, isOpen, onClose }) {
 
       await sendMessage(roomId, 'System', `${username} joined the video call`, true);
 
+      console.log('Initializing WebRTC call...');
       const stream = await webrtcService.initializeCall(roomId, username, false);
       setLocalStream(stream);
       setIsInCall(true);
+      console.log('Call initialized, isInCall set to true');
 
       webrtcService.onRemoteStream((stream) => {
         console.log('Remote stream received');
