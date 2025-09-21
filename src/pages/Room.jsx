@@ -2,6 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { listenMessages, sendMessage } from "../services/firebaseService";
 import { formatDateTime } from "../utils/datetime";
+import { formatFileSize, getFileIcon } from "../utils/file";
+import FileUpload from "../components/FileUpload";
+import { auth } from "../fireBaseConfig";
+import { signInAnonymously } from "firebase/auth";
 
 export default function ChatRoom() {
   const { roomId } = useParams();
@@ -22,6 +26,17 @@ export default function ChatRoom() {
     } else {
       setShowNameInput(true);
     }
+
+    const ensureAuth = async () => {
+      if (!auth.currentUser) {
+        try {
+          await signInAnonymously(auth);
+        } catch (error) {
+          console.error("Authentication error:", error);
+        }
+      }
+    };
+    ensureAuth();
   }, []);
 
   useEffect(() => {
@@ -47,6 +62,21 @@ export default function ChatRoom() {
       inputRef.current?.focus();
     } catch (error) {
       console.error("Error sending message:", error);
+    }
+  };
+
+  const handleFileUploaded = async (fileName, fileUrl, fileType, fileSize) => {
+    try {
+      const fileData = {
+        fileName,
+        fileUrl,
+        fileType,
+        fileSize
+      };
+
+      await sendMessage(roomId, username, `📎 ${fileName}`, false, fileData);
+    } catch (error) {
+      console.error("Error sending file message:", error);
     }
   };
 
@@ -121,7 +151,43 @@ export default function ChatRoom() {
                   {!msg.isSystem && (
                     <span className="block text-xs text-gray-600">{msg.sender}</span>
                   )}
-                  <span className={msg.isSystem ? "text-sm text-gray-700 italic" : ""}>{msg.text}</span>
+                  {msg.fileData ? (
+                    <div className="space-y-2">
+                      {msg.fileData.fileType.startsWith('image/') && (
+                        <div className="max-w-xs">
+                          <img
+                            src={msg.fileData.fileUrl}
+                            alt={msg.fileData.fileName}
+                            className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(msg.fileData.fileUrl, '_blank')}
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex items-center space-x-2 bg-white bg-opacity-50 rounded p-2">
+                        <i className={`pi ${getFileIcon(msg.fileData.fileType)} text-lg`}></i>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{msg.fileData.fileName}</div>
+                          <div className="text-xs text-gray-500">{formatFileSize(msg.fileData.fileSize)}</div>
+                        </div>
+                        <a
+                          href={msg.fileData.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
+                        >
+                          <i className="pi pi-download mr-1"></i>
+                          Download
+                        </a>
+                      </div>
+                      {msg.text && msg.text !== `📎 ${msg.fileData.fileName}` && (
+                        <span className={msg.isSystem ? "text-sm text-gray-700 italic" : ""}>{msg.text}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className={msg.isSystem ? "text-sm text-gray-700 italic" : ""}>{msg.text}</span>
+                  )}
+
                   <div className="text-xs text-gray-500 mt-1">
                     {formatDateTime(msg.createdAt)}
                   </div>
@@ -130,6 +196,12 @@ export default function ChatRoom() {
               <div ref={messagesEndRef} />
             </div>
             <div className="flex space-x-2">
+              <FileUpload
+                roomId={roomId}
+                username={username}
+                onFileUploaded={handleFileUploaded}
+                disabled={!username}
+              />
               <input
                 ref={inputRef}
                 type="text"
