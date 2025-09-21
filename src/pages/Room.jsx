@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { listenMessages, sendMessage } from "../services/firebaseService";
 import { formatDateTime } from "../utils/datetime";
-import VideoCall from "../components/VideoCall";
 
 export default function ChatRoom() {
   const { roomId } = useParams();
@@ -13,8 +12,6 @@ export default function ChatRoom() {
   const [username, setUsername] = useState("");
   const [showNameInput, setShowNameInput] = useState(false);
   const [tempName, setTempName] = useState("");
-  const [showVideoCall, setShowVideoCall] = useState(false);
-  const [hasMicrophone, setHasMicrophone] = useState(true);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -22,46 +19,10 @@ export default function ChatRoom() {
     const savedUsername = localStorage.getItem('chatUsername');
     if (savedUsername) {
       setUsername(savedUsername);
-      checkMicrophoneAvailability();
     } else {
       setShowNameInput(true);
     }
   }, []);
-
-  const checkMicrophoneAvailability = async () => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setHasMicrophone(false);
-        return;
-      }
-
-      // Try with enhanced audio constraints first
-      let constraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true
-        },
-        video: false
-      };
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        setHasMicrophone(true);
-        stream.getTracks().forEach(track => track.stop());
-      } catch (error) {
-        console.warn('Failed with enhanced audio constraints, trying basic:', error);
-
-        // Fallback to very basic audio
-        constraints = { audio: true, video: false };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        setHasMicrophone(true);
-        stream.getTracks().forEach(track => track.stop());
-      }
-    } catch (error) {
-      console.error('Microphone not available:', error);
-      setHasMicrophone(false);
-    }
-  };
 
   useEffect(() => {
     if (!roomId) return;
@@ -97,9 +58,6 @@ export default function ChatRoom() {
     localStorage.setItem('chatUsername', finalUsername);
     setShowNameInput(false);
     setTempName("");
-
-    // Check microphone availability when username is set
-    checkMicrophoneAvailability();
 
     setTimeout(() => {
       inputRef.current?.focus();
@@ -144,20 +102,6 @@ export default function ChatRoom() {
                     Change
                   </button>
                 </div>
-              )}
-              {username && (
-                <button
-                  onClick={() => hasMicrophone ? setShowVideoCall(true) : checkMicrophoneAvailability()}
-                  disabled={!hasMicrophone}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${hasMicrophone
-                    ? 'bg-green-500 hover:bg-green-600 text-white'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  title={hasMicrophone ? 'Start video call' : 'Microphone not available - click to check again'}
-                >
-                  <i className={`text-sm ${hasMicrophone ? 'pi pi-video' : 'pi pi-ban'}`}></i>
-                  <span className="md:block hidden">{hasMicrophone ? 'Video Call' : 'No Mic'}</span>
-                </button>
               )}
             </div>
           </div>
@@ -250,12 +194,6 @@ export default function ChatRoom() {
           </div>
         )}
       </div>
-      <VideoCall
-        roomId={roomId}
-        username={username}
-        isOpen={showVideoCall}
-        onClose={() => setShowVideoCall(false)}
-      />
     </div>
   );
 }
