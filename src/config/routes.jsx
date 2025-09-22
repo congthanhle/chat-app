@@ -1,8 +1,8 @@
 // src/config/routes.jsx
 import Home from "../pages/Home";
 import Room from "../pages/Room";
-import Profile from "../pages/Profile";
-import Settings from "../pages/Settings";
+// import Profile from "../pages/Profile";
+// import Settings from "../pages/Settings";
 
 export const routes = [
   {
@@ -19,20 +19,20 @@ export const routes = [
     icon: null,
     showInSidebar: false,
   },
-  {
-    path: "/profile",
-    name: "Profile",
-    component: Profile,
-    icon: <i className="pi pi-user"></i>,
-    showInSidebar: true,
-  },
-  {
-    path: "/settings",
-    name: "Settings",
-    component: Settings,
-    icon: <i className="pi pi-cog"></i>,
-    showInSidebar: true,
-  },
+  // {
+  //   path: "/profile",
+  //   name: "Profile",
+  //   component: Profile,
+  //   icon: <i className="pi pi-user"></i>,
+  //   showInSidebar: true,
+  // },
+  // {
+  //   path: "/settings",
+  //   name: "Settings",
+  //   component: Settings,
+  //   icon: <i className="pi pi-cog"></i>,
+  //   showInSidebar: true,
+  // },
 ];
 
 export const getRouteNameByPath = (pathname) => {
