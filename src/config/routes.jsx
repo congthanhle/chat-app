@@ -1,4 +1,3 @@
-// src/config/routes.jsx
 import Home from "../pages/Home";
 import Room from "../pages/Room";
 // import Profile from "../pages/Profile";
