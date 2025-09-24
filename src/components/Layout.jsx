@@ -1,4 +1,3 @@
-// src/components/Layout.jsx
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { getSidebarRoutes, getRouteNameByPath } from "../config/routes";
@@ -18,7 +17,6 @@ export default function Layout() {
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen bg-gray-100">
-      {/* Desktop Sidebar */}
       <div className={`hidden md:block bg-white shadow-lg transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-16'
         }`}>
         <div className="flex items-center justify-between py-8 md:p-4 border-b">
